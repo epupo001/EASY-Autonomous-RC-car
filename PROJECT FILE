@@ -1,0 +1,153 @@
+In this file you will find the Arduino code I wrote for my autonomous car. You will also find a link below to a powerpoint
+presentation on the project. 
+
+PowerPoint link:
+https://www.dropbox.com/s/dcr828m3fo7ztd0/Autonomous%20car%20presentation.pptx?dl=0
+
+/* The car will proceed forward until specified distance is detected
+ then it will reverse until no longer within range. Repeat.
+ 12 inches = 30.48 cm   d=10^-1  c=10^-2  m=10^-3
+*/
+
+// FRONT MOTOR- Steers                 // H Bridge pins
+  const int motor1Pin = 3;    // 1A 
+  const int motor2Pin = 4;    // 2A
+  
+// BACK MOTOR- Movement                      HIGH LOW is backwards
+ const int secondpin1=5;      // 4A 
+ const int secondpin2=6;      // 3A
+ 
+const int enablePin = 9;    // H-bridge enable pin--FRONT MOTOR
+const int enablePin2= 10;  // leg 9 on H Bridge --BACK MOTOR
+
+int signal=7;  
+int distance;
+unsigned long pulseduration=0;  
+// *****************************************************************************************************
+void setup()
+{
+pinMode(signal, OUTPUT);
+Serial.begin(9600);
+ 
+    pinMode(motor1Pin, OUTPUT);
+    pinMode(motor2Pin, OUTPUT);
+    pinMode(secondpin1, OUTPUT);
+    pinMode(secondpin2, OUTPUT);
+    pinMode(enablePin, OUTPUT); // FRONT MOTOR
+	pinMode(enablePin2, OUTPUT);  //BACK MOTOR
+
+    // set enablePins high so the motors can turn on:
+    digitalWrite(enablePin, HIGH);  // front
+    digitalWrite(enablePin2, HIGH); // back
+}
+//***************************************************************************
+//     CAR MOBILITY FUNCTIONS 
+//***************************************************************************
+void STOP()
+{
+			digitalWrite(enablePin2, LOW); // Turns off the back motor. 
+}
+
+void forward()
+{  
+			 digitalWrite(secondpin1, LOW);   // Acceleration motor, back motor.
+			 digitalWrite(secondpin2, HIGH); 
+			 analogWrite(enablePin2, 128);  // 50% speed using PWM.  Desired Speed % * 255.
+}
+
+void backward()
+{
+			digitalWrite(secondpin1, HIGH);  
+			digitalWrite(secondpin2, LOW); 
+			analogWrite(enablePin2, 204);  // 80% speed
+}
+void right()
+{
+	        digitalWrite(motor1Pin, HIGH);   // Controls front motor gearbox to turn right.			   
+		    digitalWrite(motor2Pin, LOW);
+}
+void left()
+{
+			digitalWrite(motor1Pin, LOW);  // Front motor.
+			digitalWrite(motor2Pin, HIGH);  
+}
+void center()
+{
+			digitalWrite(motor1Pin, LOW);  // To center the front wheels.
+			digitalWrite(motor2Pin, LOW); 
+}
+//***********************************************
+
+
+// PING))) sensor open source code
+
+void measureDistance()
+{
+// set pin as output so we can send a pulse
+pinMode(signal, OUTPUT);
+// set output to LOW
+digitalWrite(signal, LOW);
+delayMicroseconds(5);
+// now send the 5uS pulse out to activate Ping)))
+digitalWrite(signal, HIGH);
+delayMicroseconds(5);
+digitalWrite(signal, LOW);
+// now we need to change the digital pin
+// to input to read the incoming pulse
+pinMode(signal, INPUT);
+// finally, measure the length of the incoming pulse
+pulseduration=pulseIn(signal, HIGH);
+}
+
+
+
+
+//*****************************************************************************************************
+// Car algorithm executes below, it's alive !!!
+void loop()
+{
+  
+		  // get the raw measurement data from Ping)))
+		measureDistance();
+		 
+		// divide the pulse length by half
+		pulseduration=pulseduration/2;
+		 
+		// now convert to centimetres....
+		distance = int(pulseduration/29);
+		 
+		// Display on serial monitor
+
+		Serial.print(distance);
+		Serial.println(" cm");
+		//delay(500);
+		 //*************************************************************************
+		  
+		  if (distance >31) // 12 inches = 30.48 cm   d=10^-1  c=10^-2  m=10^-3
+		  {
+		   forward();  
+		  delay (200);
+		  left();
+		  delay(200);        // This section is for a distance greater than 1 foot.
+		  center();
+		  forward();
+		  }
+		  
+		  if (distance <= 31 )
+		  {
+		   
+		  STOP();   // reverse left and go forward
+		  delay(100);
+		  digitalWrite(enablePin2, HIGH); // Acceleration motor (Back motor) turns on again
+		  backward();
+		  delay(700);
+		  right();
+		  delay(250);
+		  center();
+		  delay(100);
+		  STOP();
+		  delay(100);
+			}
+		delay(500);  // seconds to send another ping pulse. Take into account the time it took to execute either IF statements above. 
+}
+ 
